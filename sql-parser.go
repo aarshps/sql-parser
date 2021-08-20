@@ -1,45 +1,71 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 var inputPath string = "./input"
+var outputPath string = "./output"
+var typeMapper map[string]string = make(map[string]string)
 
 func main() {
-	typeMapper := make(map[string]string)
-	typeMapper["[varchar](50)"] = "STRING"
+	fillTypeMapper()
+
+	inputFiles, err := ioutil.ReadDir(inputPath)
+
+	if err != nil {
+		log.Fatal("Can't read input files...")
+	}
+
+	if len(inputFiles) == 0 {
+		log.Fatal("No files found to process...")
+	}
+
+	for _, inputFile := range inputFiles {
+		fileExtension := filepath.Ext(inputFile.Name())
+
+		if fileExtension != ".sql" {
+			log.Println("Skipping " + inputFile.Name() + " as it is " + fileExtension + " file...")
+
+			continue
+		}
+
+		fileName := inputFile.Name()[0 : len(inputFile.Name())-len(fileExtension)]
+
+		log.Println(fileName + " started processing...")
+
+		inputFileFullPath := inputPath + "/" + fileName + ".sql"
+
+		dDLCommandAllText, readCommandError := ioutil.ReadFile(inputFileFullPath)
+		valueSchemaString := formatDDLToValueSchemaFormattedString(readCommandError, inputFileFullPath, dDLCommandAllText, typeMapper, fileName)
+
+		outputFileFullPath := outputPath + "/" + fileName + ".json"
+
+		ioutil.WriteFile(outputFileFullPath, []byte(valueSchemaString), 0644)
+
+		log.Println(fileName + " write complete...")
+	}
+}
+
+func fillTypeMapper() {
 	typeMapper["[bigint]"] = "INT"
 	typeMapper["[datetime]"] = "STRING"
 	typeMapper["[int]"] = "INT"
-	typeMapper["[char](4)"] = "STRING"
-	typeMapper["[char](1)"] = "STRING"
-	typeMapper["[varchar](1)"] = "STRING"
-	typeMapper["[varchar](5)"] = "STRING"
-	typeMapper["[varchar](2)"] = "STRING"
-	typeMapper["[varchar](3)"] = "STRING"
-	typeMapper["[varchar](4)"] = "STRING"
-	typeMapper["[varchar](30)"] = "STRING"
-	typeMapper["[varchar](8)"] = "STRING"
-	typeMapper["[varchar](200)"] = "STRING"
-	typeMapper["[varchar](10)"] = "STRING"
-	typeMapper["[varchar](255)"] = "STRING"
-	typeMapper["[varchar](12)"] = "STRING"
-	typeMapper["[varchar](11)"] = "STRING"
 	typeMapper["[numeric](13,"] = "INT"
+	typeMapper["[decimal](29,"] = "INT"
 
-	fileName := "ABC.MedicalReplimental"
+	for i := 1; i <= 255; i = i + 1 {
+		typeMapper["[varchar]("+strconv.Itoa(i)+")"] = "STRING"
+	}
 
-	fileFullPath := inputPath + "/" + fileName + ".sql"
-
-	dDLCommandAllText, readCommandError := ioutil.ReadFile(fileFullPath)
-	valueSchemaString := formatDDLToValueSchemaFormattedString(readCommandError, fileFullPath, dDLCommandAllText, typeMapper, fileName)
-
-	fmt.Println(valueSchemaString)
+	for i := 1; i <= 4; i = i + 1 {
+		typeMapper["[char]("+strconv.Itoa(i)+")"] = "STRING"
+	}
 }
 
 func formatDDLToValueSchemaFormattedString(readCommandError error, fileFullPath string, dDLCommandAllText []byte, typeMapper map[string]string, fileName string) string {
