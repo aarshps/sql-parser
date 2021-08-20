@@ -53,11 +53,11 @@ func main() {
 }
 
 func fillTypeMapper() {
-	typeMapper["[bigint]"] = "INT"
+	typeMapper["[bigint]"] = "INT64"
 	typeMapper["[datetime]"] = "STRING"
-	typeMapper["[int]"] = "INT"
-	typeMapper["[numeric](13,"] = "INT"
-	typeMapper["[decimal](29,"] = "INT"
+	typeMapper["[int]"] = "INT64"
+	typeMapper["[numeric](13,"] = "FLOAT64"
+	typeMapper["[decimal](29,"] = "FLOAT64"
 
 	for i := 1; i <= 255; i = i + 1 {
 		typeMapper["[varchar]("+strconv.Itoa(i)+")"] = "STRING"
